@@ -1,5 +1,6 @@
 use gtk::{prelude::*, ApplicationWindow};
 use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog};
+use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
@@ -9,10 +10,9 @@ struct WorkspaceInfo {
     address: String,
     mapped: bool,
     hidden: bool,
-    at: Vec<u8>,
-    size: Vec<u8>,
-    // TO DO Figure out how to put this as type json.
-    workspace: Map<u8, id, String, name>,
+    at: Vec<u32>,
+    size: Vec<u32>,
+    workspace: HashMap<u32, String>,
     floating: bool,
     pseudo: bool,
     monitor: u8,
@@ -31,8 +31,6 @@ struct WorkspaceInfo {
     focus_history_id: u8,
     inhibiting_idle: bool
 }
-
-
 
 const APP_ID: &str = "org.gtk_rs.window";
 
@@ -53,7 +51,11 @@ fn parse_json() -> Result<()> {
         .expect("Failed to fetch workspace information.");
     
     let command_out = String::from_utf8_lossy(&output.stdout);
-    let json: WorkspaceInfo = serde_json::from_str(&command_out)?;
+    let json: Vec<WorkspaceInfo> = serde_json::from_str(&command_out)?;
+    for workspace in json {
+        println!("{}", workspace.title);
+        
+    }
     
     
     Ok(())
@@ -66,8 +68,9 @@ fn build_ui(app: &Application) {
     //     .label(format!("{}", command_out))
     //     .build();
         
-
-    _ = parse_json();
+    if let Err(e) = parse_json() {
+        eprintln!("Error parsing JSON: {}", e)
+    }
 
     let gtk_box = gtk::Box::builder()
         .opacity(0.5)
