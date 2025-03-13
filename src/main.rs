@@ -12,24 +12,24 @@ struct WorkspaceInfo {
     hidden: bool,
     at: Vec<u32>,
     size: Vec<u32>,
-    workspace: HashMap<u32, String>,
+    workspace: HashMap<String, serde_json::Value>,
     floating: bool,
     pseudo: bool,
     monitor: u8,
     class: String,
     title: String,
-    initial_class: String,
-    initial_title: String,
-    pid: u8,
+    initialClass: String,
+    initialTitle: String,
+    pid: u32,
     xwayland: bool,
     pinned: bool,
-    fullscreen: u8,
-    fullscreen_client: u8,
+    fullscreen: u32,
+    fullscreenClient: u32,
     grouped: Vec<String>,
     tags: Vec<String>,
     swallowing: String,
-    focus_history_id: u8,
-    inhibiting_idle: bool
+    focusHistoryID: u32,
+    inhibitingIdle: bool
 }
 
 const APP_ID: &str = "org.gtk_rs.window";
