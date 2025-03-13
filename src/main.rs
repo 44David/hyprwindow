@@ -1,3 +1,4 @@
+use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
 use gtk::{prelude::*, ApplicationWindow};
 use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog};
 use std::collections::HashMap;
@@ -6,6 +7,9 @@ use serde_json::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)]
+
+// JSON output from hyprctl command.
 struct WorkspaceInfo {
     address: String,
     mapped: bool,
@@ -42,7 +46,7 @@ fn main() -> glib::ExitCode {
     app.run()
 }
 
-fn parse_json() -> Result<()> {
+fn parse_json() -> Result<Vec<WorkspaceInfo>> {
     
     let output = Command::new("hyprctl")
         .arg("-j")
@@ -51,27 +55,19 @@ fn parse_json() -> Result<()> {
         .expect("Failed to fetch workspace information.");
     
     let command_out = String::from_utf8_lossy(&output.stdout);
-    let json: Vec<WorkspaceInfo> = serde_json::from_str(&command_out)?;
-    for workspace in json {
-        println!("{}", workspace.title);
-        
-    }
+    let struct_json: Vec<WorkspaceInfo> = serde_json::from_str(&command_out)?;
     
-    
-    Ok(())
+    Ok(struct_json) 
 }
 
 fn build_ui(app: &Application) {
-    
-    // Contains text
-    // let label = Label::builder()
-    //     .label(format!("{}", command_out))
-    //     .build();
-        
-    if let Err(e) = parse_json() {
-        eprintln!("Error parsing JSON: {}", e)
-    }
 
+    let json = parse_json().unwrap();
+    for workspace in json {
+        println!("{}", workspace.title);
+    }
+    
+    
     let gtk_box = gtk::Box::builder()
         .opacity(0.5)
         .orientation(Orientation::Vertical)
@@ -85,7 +81,6 @@ fn build_ui(app: &Application) {
         .child(&gtk_box)
         .build();
     
-        
     window.present();
-    
+
 }
