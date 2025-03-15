@@ -1,6 +1,6 @@
 use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
-use gtk::{prelude::*, ApplicationWindow};
-use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog};
+use gtk::prelude::*;
+use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType};
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use serde_json::Result;
@@ -60,27 +60,47 @@ fn parse_json() -> Result<Vec<WorkspaceInfo>> {
     Ok(struct_json) 
 }
 
+fn switch_workspaces(workspace_name: String) -> Result<()> {
+    let output = Command::new("hyprctl")
+        .arg("dispatch")
+        .arg("workspace")
+        .arg(workspace_name)
+        .output()
+        .expect("Failed to switch to application/workspace");
+    
+    Ok(())
+}
+
 fn build_ui(app: &Application) {
 
     let json = parse_json().unwrap();
-    for workspace in json {
-        println!("{}", workspace.title);
-    }
-    
     
     let gtk_box = gtk::Box::builder()
         .opacity(0.5)
         .orientation(Orientation::Vertical)
         .halign(Align::Center)
         .build();
-    // gtk_box.append(&label);
+    
+    let search = gtk::Entry::builder()
+        .build();
+    
+    gtk_box.append(&search);
         
+    for workspace in json {
+        let label = Label::builder()
+            .label(format!("{}", workspace.class))
+            .build();
+        gtk_box.append(&label)
+    }
+    
+    
     let window = gtk::Window::builder()
         .application(app)
         .title("gtk-rs app")
         .child(&gtk_box)
         .build();
     
+    window.set_default_size(400, 400);
     window.present();
 
 }
