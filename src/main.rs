@@ -83,14 +83,18 @@ fn build_ui(app: &Application) {
         .halign(Align::Center)
         .build();
     
-        
+    
+    let mut app_names = vec![];
     for workspace in json {
+        
         let label = Label::builder()
             .label(format!("{}", workspace.class))
             .build();
+        app_names.push(workspace.class);
         gtk_box.append(&label)
     }
     
+    println!("{:?}", app_names);
     
     let window = gtk::Window::builder()
         .application(app)
@@ -98,6 +102,8 @@ fn build_ui(app: &Application) {
         .child(&gtk_box)
         .build();
 
+    
+    
     let event_controller = gtk::EventControllerKey::new();
     
     event_controller.connect_key_pressed(|_, key, _, _| {
@@ -109,7 +115,7 @@ fn build_ui(app: &Application) {
                 
                 let key_val = key.name().unwrap();
                 
-                if key_val == "a" {
+                if key_val == "d" {
                     println!("{:?}", key.name().unwrap());
                 }
             }   
