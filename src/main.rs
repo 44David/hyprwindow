@@ -1,6 +1,6 @@
 use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
-use gtk::prelude::*;
-use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType};
+use gtk::{gdk, prelude::*};
+use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType, EventControllerKey};
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use serde_json::Result;
@@ -81,10 +81,6 @@ fn build_ui(app: &Application) {
         .halign(Align::Center)
         .build();
     
-    let search = gtk::Entry::builder()
-        .build();
-    
-    gtk_box.append(&search);
         
     for workspace in json {
         let label = Label::builder()
@@ -99,6 +95,20 @@ fn build_ui(app: &Application) {
         .title("gtk-rs app")
         .child(&gtk_box)
         .build();
+
+    let event_controller = gtk::EventControllerKey::new();
+    
+    event_controller.connect_key_pressed(|_, key, _, _| {
+        match key {
+            gdk::Key::Escape => {
+                std::process::exit(0);
+            }
+            _ => println!("{}", key),
+        }
+       glib::Propagation::Proceed
+    });
+    
+    window.add_controller(event_controller);
     
     window.set_default_size(400, 400);
     window.present();
