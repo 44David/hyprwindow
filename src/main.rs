@@ -1,3 +1,5 @@
+use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
+use gtk::gdk::KeymapKey;
 use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
 use gtk::{gdk, prelude::*};
 use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType, EventControllerKey};
@@ -103,7 +105,14 @@ fn build_ui(app: &Application) {
             gdk::Key::Escape => {
                 std::process::exit(0);
             }
-            _ => println!("{}", key),
+            _ => { 
+                
+                let key_val = key.name().unwrap();
+                
+                if key_val == "a" {
+                    println!("{:?}", key.name().unwrap());
+                }
+            }   
         }
        glib::Propagation::Proceed
     });
