@@ -1,11 +1,11 @@
-use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
-use gtk::gdk::KeymapKey;
-use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
-use gtk::glib::GString;
+// use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
+// use gtk::gdk::KeymapKey;
+// use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
+// use gtk::glib::GString;
 use gtk::{gdk, prelude::*};
-use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType, EventControllerKey};
+use gtk::{glib, Application, Label, Orientation, Align};
 use std::collections::HashMap;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +50,6 @@ fn main() -> glib::ExitCode {
 }
 
 fn parse_json() -> Result<Vec<WorkspaceInfo>> {
-    
     let output = Command::new("hyprctl")
         .arg("-j")
         .arg("clients")
@@ -63,8 +62,18 @@ fn parse_json() -> Result<Vec<WorkspaceInfo>> {
     Ok(struct_json) 
 }
 
-fn switch_workspaces(workspace_name: String) -> Result<()> {
-    let output = Command::new("hyprctl")
+fn switch_workspaces(app_name: char) -> Result<()> {
+    
+    let json = parse_json().unwrap();
+    
+    let mut workspace_name = "".to_string();
+    for window in json {
+        if window.class.to_lowercase().chars().next().unwrap() == app_name {
+            workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+        }
+    }
+    
+    let _output = Command::new("hyprctl")
         .arg("dispatch")
         .arg("workspace")
         .arg(workspace_name)
@@ -86,16 +95,14 @@ fn build_ui(app: &Application) {
     
     
     let mut app_names = vec![];
-    for workspace in json {
+    for workspace in &json {
         
         let label = Label::builder()
             .label(format!("{}", workspace.class))
             .build();
         
         // get first character in string
-        // let app: Vec<char> = workspace.class.chars().next().unwrap();
-        app_names.push(workspace.class.chars().next().unwrap());
-        // app_names.push(workspace.class);
+        app_names.push(workspace.class.to_lowercase().chars().next().unwrap());
         gtk_box.append(&label)
     }
     
@@ -123,7 +130,7 @@ fn build_ui(app: &Application) {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
-                        println!("{:?}", key_val);
+                        let _ = switch_workspaces(key_val);
                     }
                 }
             }  
