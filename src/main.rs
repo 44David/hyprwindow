@@ -1,6 +1,7 @@
 use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
 use gtk::gdk::KeymapKey;
 use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
+use gtk::glib::GString;
 use gtk::{gdk, prelude::*};
 use gtk::{glib, Application, Label, Orientation, Align, Window, AlertDialog, ApplicationWindow, Entry, SearchBar, TextWindowType, EventControllerKey};
 use std::collections::HashMap;
@@ -90,7 +91,11 @@ fn build_ui(app: &Application) {
         let label = Label::builder()
             .label(format!("{}", workspace.class))
             .build();
-        app_names.push(workspace.class);
+        
+        // get first character in string
+        // let app: Vec<char> = workspace.class.chars().next().unwrap();
+        app_names.push(workspace.class.chars().next().unwrap());
+        // app_names.push(workspace.class);
         gtk_box.append(&label)
     }
     
@@ -102,23 +107,26 @@ fn build_ui(app: &Application) {
         .child(&gtk_box)
         .build();
 
+
     
     
     let event_controller = gtk::EventControllerKey::new();
     
-    event_controller.connect_key_pressed(|_, key, _, _| {
+    event_controller.connect_key_pressed(move |_, key, _, _| {
         match key {
             gdk::Key::Escape => {
                 std::process::exit(0);
             }
-            _ => { 
+            _ => {
                 
-                let key_val = key.name().unwrap();
-                
-                if key_val == "d" {
-                    println!("{:?}", key.name().unwrap());
+                for app in &app_names {
+                    let key_val = key.name().unwrap().chars().next().unwrap();
+                    
+                    if key_val == *app {
+                        println!("{:?}", key_val);
+                    }
                 }
-            }   
+            }  
         }
        glib::Propagation::Proceed
     });
