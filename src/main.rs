@@ -1,13 +1,17 @@
+use gtk::ffi::gtk_window_get_transient_for;
+use gtk::gdk::Popup;
+use gtk::gio::Menu;
 // use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
 // use gtk::gdk::KeymapKey;
 // use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
 // use gtk::glib::GString;
-use gtk::{gdk, prelude::*};
-use gtk::{glib, Application, Label, Orientation, Align};
+use gtk::{gdk, prelude::*, AlertDialog, Overlay, PopoverMenuBar, TextWindowType};
+use gtk::{glib, Application, Label, Orientation, Align, ApplicationWindow, ButtonsType, DialogFlags, MessageType, MessageDialog, Window};
 use std::collections::HashMap;
 use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
+use gtk4_layer_shell::{Edge, Layer, LayerShell};
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -84,6 +88,7 @@ fn switch_workspaces(app_name: char) -> Result<()> {
 }
 
 fn build_ui(app: &Application) {
+    
 
     let json = parse_json().unwrap();
     
@@ -106,15 +111,14 @@ fn build_ui(app: &Application) {
         gtk_box.append(&label)
     }
     
-    println!("{:?}", app_names);
-    
-    let window = gtk::Window::builder()
+    let overlay = Overlay::builder()
+        .build();
+    let window = gtk::ApplicationWindow::builder()
+        .opacity(0.9)
         .application(app)
-        .title("gtk-rs app")
         .child(&gtk_box)
         .build();
-
-
+    
     
     
     let event_controller = gtk::EventControllerKey::new();
@@ -139,8 +143,10 @@ fn build_ui(app: &Application) {
     });
     
     window.add_controller(event_controller);
-    
-    window.set_default_size(400, 400);
+    window.init_layer_shell();
+    window.set_layer(Layer::Overlay);
+    window.set_anchor(Edge::Top , true);
+    window.grab_focus();
     window.present();
 
 }
