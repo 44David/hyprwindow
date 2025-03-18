@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
-use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -146,7 +146,7 @@ fn build_ui(app: &Application) {
     window.init_layer_shell();
     window.set_layer(Layer::Overlay);
     window.set_anchor(Edge::Top , true);
-    window.grab_focus();
+    window.set_keyboard_mode(KeyboardMode::Exclusive);
     window.present();
 
 }
