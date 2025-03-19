@@ -1,17 +1,11 @@
-use gtk::ffi::gtk_window_get_transient_for;
-use gtk::gdk::Popup;
-use gtk::gio::Menu;
-// use gtk::gdk::ffi::{gdk_key_event_get_keyval, gdk_keyval_name};
-// use gtk::gdk::KeymapKey;
-// use gtk::glib::ffi::G_UNICODE_SCRIPT_TIRHUTA;
-// use gtk::glib::GString;
-use gtk::{gdk, prelude::*, AlertDialog, Overlay, PopoverMenuBar, TextWindowType};
-use gtk::{glib, Application, Label, Orientation, Align, ApplicationWindow, ButtonsType, DialogFlags, MessageType, MessageDialog, Window};
+use gtk::{gdk, prelude::*};
+use gtk::{glib, Application, Label, Orientation, Align};
 use std::collections::HashMap;
 use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
+use itertools::Itertools;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -88,8 +82,6 @@ fn switch_workspaces(app_name: char) -> Result<()> {
 }
 
 fn build_ui(app: &Application) {
-    
-
     let json = parse_json().unwrap();
     
     let gtk_box = gtk::Box::builder()
@@ -97,7 +89,6 @@ fn build_ui(app: &Application) {
         .orientation(Orientation::Vertical)
         .halign(Align::Center)
         .build();
-    
     
     let mut app_names = vec![];
     for workspace in &json {
@@ -107,19 +98,33 @@ fn build_ui(app: &Application) {
             .build();
         
         // get first character in string
-        app_names.push(workspace.class.to_lowercase().chars().next().unwrap());
+        let first_char_app = workspace.class.to_lowercase().chars().next().unwrap();
+        
+        let counts = app_names.iter().counts();
+        
+        if counts[&first_char_app] > 1 {
+            for i in 0..counts[&first_char_app] {
+                println!("{}", i);
+                let mut count_string = format!("({i})");
+                count_string.push(first_char_app);
+                
+                app_names.push(first_char_app);
+                
+            }
+        } else {
+            app_names.push(first_char_app);
+            
+        }
+        
         gtk_box.append(&label)
+        
     }
     
-    let overlay = Overlay::builder()
-        .build();
     let window = gtk::ApplicationWindow::builder()
         .opacity(0.9)
         .application(app)
         .child(&gtk_box)
         .build();
-    
-    
     
     let event_controller = gtk::EventControllerKey::new();
     
@@ -129,7 +134,6 @@ fn build_ui(app: &Application) {
                 std::process::exit(0);
             }
             _ => {
-                
                 for app in &app_names {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
