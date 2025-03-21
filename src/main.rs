@@ -93,28 +93,16 @@ fn build_ui(app: &Application) {
     let mut app_names = vec![];
     for workspace in &json {
         
-        let label = Label::builder()
-            .label(format!("{}", workspace.class))
-            .build();
         
         // get first character in string
         let first_char_app = workspace.class.to_lowercase().chars().next().unwrap();
+        let mut workspace_name = serde_json::to_string(workspace.workspace.get("id").unwrap()).unwrap();
         
-        let counts = app_names.iter().counts();
+        app_names.push(first_char_app);
         
-        if counts[&first_char_app] > 1 {
-            for i in 0..counts[&first_char_app] {
-                println!("{}", i);
-                let mut count_string = format!("({i})");
-                count_string.push(first_char_app);
-                
-                app_names.push(first_char_app);
-                
-            }
-        } else {
-            app_names.push(first_char_app);
-            
-        }
+        let label = Label::builder()
+            .label(format!("{:} {:}", workspace.class, workspace_name))
+            .build();
         
         gtk_box.append(&label)
         
