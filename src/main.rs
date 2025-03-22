@@ -64,8 +64,6 @@ fn parse_json() -> Result<Vec<WorkspaceInfo>> {
 fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     
     let json = parse_json().unwrap();
-    println!("{:?}", app_names);
-    
     
     let counts = app_names.iter().counts();
     let mut workspace_vec = vec![];
@@ -81,18 +79,44 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
         }
     }
     
-    let sorted = workspace_vec.sort();
-    let dedup_sorted = workspace_vec.dedup();
-    println!("{:?}",workspace_vec);
+    let _ = workspace_vec.sort();
+    let _ = workspace_vec.dedup();
 
+    let current_workspace = Command::new("hyprctl")
+        .arg("activeworkspace")
+        .arg("-j")
+        .arg("|")
+        .arg("jq")
+        .arg("'.id'")
+        .output()
+        .expect("Failed to get current workspace id");
     
     let mut workspace_name = "".to_string();
     for window in json {
-        
         if window.class.to_lowercase().chars().next().unwrap() == app_name {
-            workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+            
+            if counts[&app_name] > 1 {
+                
+                for dup_workspace_id_index in 0..workspace_vec.len() {
+                    
+                    if workspace_vec[dup_workspace_id_index] != String::from_utf8_lossy(&current_workspace.stdout) {
+                        
+                        if dup_workspace_id_index < workspace_vec.len() - 1 {
+                            workspace_name = workspace_vec[dup_workspace_id_index + 1].clone()
+                        } 
+                        
+                        else if dup_workspace_id_index == workspace_vec.len() - 1 {
+                            workspace_name = workspace_vec[dup_workspace_id_index - 1].clone()
+                        }
+                    }
+                }
+            }
+            else {
+                workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+            }
         }
     }
+    
     
     let _output = Command::new("hyprctl")
         .arg("dispatch") 
@@ -119,7 +143,7 @@ fn build_ui(app: &Application) {
         
         // get first character in string
         let first_char_app = workspace.class.to_lowercase().chars().next().unwrap();
-        let mut workspace_name = serde_json::to_string(workspace.workspace.get("id").unwrap()).unwrap();
+        let workspace_name = serde_json::to_string(workspace.workspace.get("id").unwrap()).unwrap();
         
         app_names.push(first_char_app);
         
