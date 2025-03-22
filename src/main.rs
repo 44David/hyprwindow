@@ -1,6 +1,7 @@
 use gtk::{gdk, prelude::*};
 use gtk::{glib, Application, Label, Orientation, Align};
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
@@ -60,19 +61,41 @@ fn parse_json() -> Result<Vec<WorkspaceInfo>> {
     Ok(struct_json) 
 }
 
-fn switch_workspaces(app_name: char) -> Result<()> {
+fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     
     let json = parse_json().unwrap();
+    println!("{:?}", app_names);
+    
+    
+    let counts = app_names.iter().counts();
+    let mut workspace_vec = vec![];
+    
+    if counts[&app_name] > 1 {
+        for window in &json {
+            for _ in 0..counts[&app_name] {
+                if window.class.to_lowercase().chars().next().unwrap() == app_name {
+                    let name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+                    workspace_vec.push(name)
+                }
+            }
+        }
+    }
+    
+    let sorted = workspace_vec.sort();
+    let dedup_sorted = workspace_vec.dedup();
+    println!("{:?}",workspace_vec);
+
     
     let mut workspace_name = "".to_string();
     for window in json {
+        
         if window.class.to_lowercase().chars().next().unwrap() == app_name {
             workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
         }
     }
     
     let _output = Command::new("hyprctl")
-        .arg("dispatch")
+        .arg("dispatch") 
         .arg("workspace")
         .arg(workspace_name)
         .output()
@@ -126,7 +149,7 @@ fn build_ui(app: &Application) {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
-                        let _ = switch_workspaces(key_val);
+                        let _ = switch_workspaces(key_val, &app_names);
                     }
                 }
             }  
