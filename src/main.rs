@@ -61,8 +61,7 @@ fn parse_json() -> Result<Vec<WorkspaceInfo>> {
     Ok(struct_json) 
 }
 
-fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
-    
+fn get_duplicate_applications(app_name: char, app_names: &Vec<char>) -> (Vec<String>, HashMap<&char, usize>) {
     let json = parse_json().unwrap();
     
     let counts = app_names.iter().counts();
@@ -81,39 +80,46 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     
     let _ = workspace_vec.sort();
     let _ = workspace_vec.dedup();
+    
+    (workspace_vec, counts)
+}
 
-    let current_workspace = Command::new("hyprctl")
-        .arg("activeworkspace")
-        .arg("-j")
-        .arg("|")
-        .arg("jq")
-        .arg("'.id'")
+fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
+    
+    let json = parse_json().unwrap();
+    let (workspace_vec, counts) = get_duplicate_applications(app_name, app_names);
+    
+    let current_workspace = Command::new("sh")
+        .arg("-c")
+        .arg("hyprctl activeworkspace -j | jq '.id'")
         .output()
         .expect("Failed to get current workspace id");
     
+    let active_workspace = String::from_utf8_lossy(&current_workspace.stdout);
+    
     let mut workspace_name = "".to_string();
-    for window in json {
-        if window.class.to_lowercase().chars().next().unwrap() == app_name {
-            
-            if counts[&app_name] > 1 {
-                
-                for dup_workspace_id_index in 0..workspace_vec.len() {
-                    
-                    if workspace_vec[dup_workspace_id_index] != String::from_utf8_lossy(&current_workspace.stdout) {
+    
+    
+    if counts[&app_name] > 1 {
+        let mut iterator = workspace_vec.iter();
+            loop {
+                match iterator.next() {
+                    Some(workspace_id) => {
                         
-                        if dup_workspace_id_index < workspace_vec.len() - 1 {
-                            workspace_name = workspace_vec[dup_workspace_id_index + 1].clone()
-                        } 
-                        
-                        else if dup_workspace_id_index == workspace_vec.len() - 1 {
-                            workspace_name = workspace_vec[dup_workspace_id_index - 1].clone()
+                        if workspace_id.to_owned() == active_workspace.trim_end() {
+                            workspace_name = workspace_id.to_owned();
                         }
                     }
+                    _ => break,  
                 }
             }
-            else {
-                workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
-            }
+    }
+    
+    for window in json {
+        
+        if window.class.to_lowercase().chars().next().unwrap() == app_name {
+            
+            workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
         }
     }
     
