@@ -1,7 +1,6 @@
 use gtk::{gdk, prelude::*};
 use gtk::{glib, Application, Label, Orientation, Align};
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::process::Command;
 use serde_json::Result;
 use serde::{Deserialize, Serialize};
@@ -99,30 +98,30 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     
     let mut workspace_name = "".to_string();
     
-    
     if counts[&app_name] > 1 {
-        let mut iterator = workspace_vec.iter();
-            loop {
-                match iterator.next() {
-                    Some(workspace_id) => {
-                        
-                        if workspace_id.to_owned() == active_workspace.trim_end() {
-                            workspace_name = workspace_id.to_owned();
-                        }
-                    }
-                    _ => break,  
-                }
-            }
-    }
-    
-    for window in json {
         
-        if window.class.to_lowercase().chars().next().unwrap() == app_name {
+        let mut iterator = workspace_vec.iter().cycle();
+        
+        loop {
             
-            workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+            match iterator.next() {
+                Some(workspace_id) => {
+                    workspace_name = workspace_id.to_owned();
+                }
+                
+                _ => break,
+            }
         }
+        
+
+    } else {
+        for window in json {
+            if window.class.to_lowercase().chars().next().unwrap() == app_name {
+                workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
+            }
+        }
+        
     }
-    
     
     let _output = Command::new("hyprctl")
         .arg("dispatch") 
