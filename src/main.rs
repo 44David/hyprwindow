@@ -6,6 +6,8 @@ use serde_json::Result;
 use serde::{Deserialize, Serialize};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use itertools::Itertools;
+use std::sync::Mutex;
+use std::cell::RefCell;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -37,7 +39,11 @@ struct WorkspaceInfo {
     inhibitingIdle: bool
 }
 
-const APP_ID: &str = "org.gtk_rs.window";
+struct IterValue {
+    value: String
+}
+
+const APP_ID: &str = "org.gtk_rs.hyprwindow";
 
 fn main() -> glib::ExitCode {
     let app = Application::builder().application_id(APP_ID).build();
@@ -97,30 +103,23 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     let active_workspace = String::from_utf8_lossy(&current_workspace.stdout);
     
     let mut workspace_name = "".to_string();
+    let mut iterator = workspace_vec.iter().cycle();
+    
+    let iterator_state = IterValue {
+        value: iterator.next().unwrap().to_owned()
+    };
     
     if counts[&app_name] > 1 {
-        
-        let mut iterator = workspace_vec.iter().cycle();
-        
-        loop {
-            
-            match iterator.next() {
-                Some(workspace_id) => {
-                    workspace_name = workspace_id.to_owned();
-                }
-                
-                _ => break,
-            }
+        if let Some(workspace_id) = iterator.next() {
+            workspace_name = workspace_id.to_owned();
         }
         
-
     } else {
         for window in json {
             if window.class.to_lowercase().chars().next().unwrap() == app_name {
                 workspace_name = serde_json::to_string(window.workspace.get("id").unwrap()).unwrap();
             }
         }
-        
     }
     
     let _output = Command::new("hyprctl")
@@ -174,7 +173,12 @@ fn build_ui(app: &Application) {
                 std::process::exit(0);
             }
             _ => {
-                for app in &app_names {
+                
+                let mut dedup_app_names = app_names.clone();
+                let _ = dedup_app_names.sort();
+                let _ = dedup_app_names.dedup();
+                
+                for app in &dedup_app_names {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
