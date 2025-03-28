@@ -6,8 +6,6 @@ use serde_json::Result;
 use serde::{Deserialize, Serialize};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use itertools::Itertools;
-use std::sync::Mutex;
-use std::cell::RefCell;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -103,16 +101,17 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     let active_workspace = String::from_utf8_lossy(&current_workspace.stdout);
     
     let mut workspace_name = "".to_string();
-    let mut iterator = workspace_vec.iter().cycle();
-    
-    let iterator_state = IterValue {
-        value: iterator.next().unwrap().to_owned()
-    };
     
     if counts[&app_name] > 1 {
-        if let Some(workspace_id) = iterator.next() {
-            workspace_name = workspace_id.to_owned();
+        for id in &workspace_vec {
+            if id == active_workspace.trim_end() {
+                continue;
+            } else {
+                workspace_name = id.to_owned();
+                break
+            }
         }
+        
         
     } else {
         for window in json {
@@ -182,7 +181,7 @@ fn build_ui(app: &Application) {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
-                        let _ = switch_workspaces(key_val, &app_names);
+                        _ = switch_workspaces(key_val, &app_names);
                     }
                 }
             }  
