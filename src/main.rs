@@ -37,10 +37,6 @@ struct WorkspaceInfo {
     inhibitingIdle: bool
 }
 
-struct IterValue {
-    value: String
-}
-
 const APP_ID: &str = "org.gtk_rs.hyprwindow";
 
 fn main() -> glib::ExitCode {
@@ -87,10 +83,7 @@ fn get_duplicate_applications(app_name: char, app_names: &Vec<char>) -> (Vec<Str
     (workspace_vec, counts)
 }
 
-fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
-    
-    let json = parse_json().unwrap();
-    let (workspace_vec, counts) = get_duplicate_applications(app_name, app_names);
+fn get_active_workspace() -> String {
     
     let current_workspace = Command::new("sh")
         .arg("-c")
@@ -98,20 +91,27 @@ fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
         .output()
         .expect("Failed to get current workspace id");
     
-    let active_workspace = String::from_utf8_lossy(&current_workspace.stdout);
+    let active_workspace_id = String::from_utf8_lossy(&current_workspace.stdout);
+    
+    active_workspace_id.trim_end().to_owned()
+}
+
+fn switch_workspaces<I>(app_name: char, app_names: &Vec<char>, mut iter: I) -> Result<()> 
+where 
+    I: Iterator<Item = std::string::String>, <I as Iterator>::Item: std::fmt::Debug
+{
+    
+    let json = parse_json().unwrap();
+    let (workspace_vec, counts) = get_duplicate_applications(app_name, app_names);
     
     let mut workspace_name = "".to_string();
     
     if counts[&app_name] > 1 {
-        for id in &workspace_vec {
-            if id == active_workspace.trim_end() {
-                continue;
-            } else {
-                workspace_name = id.to_owned();
-                break
-            }
-        }
+        let iter_option = iter.next();
         
+        workspace_name = iter_option.unwrap();
+        
+        switch_workspaces(app_name, app_names, iter.next());
         
     } else {
         for window in json {
@@ -181,7 +181,10 @@ fn build_ui(app: &Application) {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
-                        _ = switch_workspaces(key_val, &app_names);
+                        
+                        let (workspace_vec, counts) = get_duplicate_applications(*app, &app_names);
+                        let mut iterator = workspace_vec.iter().cycle(); 
+                        _ = switch_workspaces(key_val, &app_names, iterator);
                     }
                 }
             }  
