@@ -6,6 +6,8 @@ use serde_json::Result;
 use serde::{Deserialize, Serialize};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use itertools::Itertools;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -38,6 +40,10 @@ struct WorkspaceInfo {
 }
 
 const APP_ID: &str = "org.gtk_rs.hyprwindow";
+
+lazy_static::lazy_static! {
+    static ref CURRENT_INDEX: Mutex<usize> = Mutex::new(0);
+}
 
 fn main() -> glib::ExitCode {
     let app = Application::builder().application_id(APP_ID).build();
@@ -96,10 +102,7 @@ fn get_active_workspace() -> String {
     active_workspace_id.trim_end().to_owned()
 }
 
-fn switch_workspaces<I>(app_name: char, app_names: &Vec<char>, mut iter: I) -> Result<()> 
-where 
-    I: Iterator<Item = std::string::String>, <I as Iterator>::Item: std::fmt::Debug
-{
+fn switch_workspaces(app_name: char, app_names: &Vec<char>) -> Result<()> {
     
     let json = parse_json().unwrap();
     let (workspace_vec, counts) = get_duplicate_applications(app_name, app_names);
@@ -107,11 +110,19 @@ where
     let mut workspace_name = "".to_string();
     
     if counts[&app_name] > 1 {
-        let iter_option = iter.next();
+        let mut index = CURRENT_INDEX.lock().unwrap();
         
-        workspace_name = iter_option.unwrap();
+        if *index >= workspace_vec.len() {
+            *index = 0;
+        }
         
-        switch_workspaces(app_name, app_names, iter.next());
+        let id = &workspace_vec[*index];
+        
+        if id != get_active_workspace().trim_end() {
+            workspace_name = id.to_owned();
+        }
+        
+        *index += 1;
         
     } else {
         for window in json {
@@ -168,7 +179,7 @@ fn build_ui(app: &Application) {
     
     event_controller.connect_key_pressed(move |_, key, _, _| {
         match key {
-            gdk::Key::Escape => {
+            gdk::Key::Super_L => {
                 std::process::exit(0);
             }
             _ => {
@@ -181,10 +192,7 @@ fn build_ui(app: &Application) {
                     let key_val = key.name().unwrap().chars().next().unwrap();
                     
                     if key_val == *app {
-                        
-                        let (workspace_vec, counts) = get_duplicate_applications(*app, &app_names);
-                        let mut iterator = workspace_vec.iter().cycle(); 
-                        _ = switch_workspaces(key_val, &app_names, iterator);
+                        _ = switch_workspaces(key_val, &app_names);
                     }
                 }
             }  
