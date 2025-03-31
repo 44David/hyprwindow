@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use itertools::Itertools;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
 
 #[derive(Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -152,21 +151,36 @@ fn build_ui(app: &Application) {
         .build();
     
     let mut app_names = vec![];
+    let mut labels_vec = vec![];
+    
     for workspace in &json {
-        
         
         // get first character in string
         let first_char_app = workspace.class.to_lowercase().chars().next().unwrap();
         let workspace_name = serde_json::to_string(workspace.workspace.get("id").unwrap()).unwrap();
+    
+        let mut label_hashmap = HashMap::new();
         
         app_names.push(first_char_app);
         
-        let label = Label::builder()
-            .label(format!("{:} {:}", workspace.class, workspace_name))
-            .build();
+        // create hashmap to contain each label {"app": "1"}
+        label_hashmap.insert(&workspace.class, workspace_name);
         
-        gtk_box.append(&label)
+        if !labels_vec.contains(&label_hashmap) {
+            labels_vec.push(label_hashmap);
+        }
         
+    }
+    
+    for app_label in labels_vec {
+        for (name, id) in app_label {
+            let label = Label::builder()
+                .label(format!("{:}: {:}", name, id))
+                .build();
+                
+            gtk_box.append(&label)
+            
+        }
     }
     
     let window = gtk::ApplicationWindow::builder()
